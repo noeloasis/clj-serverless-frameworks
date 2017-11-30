@@ -194,9 +194,9 @@ plugins:
               (str "body:" body " count:" (count-input body)))})
 ```
 
-    - デモ |
-    - `serverless --profile default deploy`
-    - `http POST https://l15ym7sje7.execute-api.ap-northeast-1.amazonaws.com/dev/echo body=hi`
+- デモ |
+- `serverless --profile default deploy`
+- `http POST https://l15ym7sje7.execute-api.ap-northeast-1.amazonaws.com/dev/echo body=hi`
 
 ---
 
@@ -300,6 +300,8 @@ plugins:
 @[18-23]
 
 - `lein lambda deploy staging`
+- `http https://jmihnbxsf6.execute-api.ap-northeast-1.amazonaws.com/staging/hello name==Shibuya`
+- `http https://jmihnbxsf6.execute-api.ap-northeast-1.amazonaws.com/staging/error`
 
 ---
 
@@ -322,6 +324,15 @@ plugins:
 - デモ |
 - まだアルファクオリティ。Clojarにリリースされていない。 | 
 - 既存アプリのRingハンドラを渡したら解析に8分以上 |
+
+---
+
+## その他
+
+- [apex](http://apex.run/)
+    - AWS Lambdaへのデプロイ管理をするフレームワーク
+    - Node.jsから子プロセスを起動し、Go言語など、標準でサポートされていない言語でLambdaを記述可能
+    - Clojureのサポートも入っているようだが、デモを稼働させることができず 😭
 
 ---
 
