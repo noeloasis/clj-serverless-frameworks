@@ -183,6 +183,8 @@ plugins:
   - serverless-cljs-plugin
 ```
 
+---
+
 - servless-cljs.core
 
 ```clojure
