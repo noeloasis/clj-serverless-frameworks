@@ -60,9 +60,9 @@
 ## AWS Gateway
 
 - API GatewayはAWS Cloud上でRESTfulエンドポイントを提供する手段
-- CloudFrontと連携し、edge networkとcacheによる低レイテンシー |
-- 複数バージョンAPIの同時稼働によるテストとデプロイの効率化 |
-- Cognito, OAuthと連携したセキュリティ |
+- CloudFrontと連携し、edge networkとcacheによる低レイテンシー 
+- 複数バージョンAPIの同時稼働によるテストとデプロイの効率化 
+- Cognito, OAuthと連携したセキュリティ 
 - AWS API Gatewayコンソール | 
 
 ---
@@ -72,8 +72,7 @@
 - cljsをGoogle Closureコンパイラでjsに変換し、node.jsプラットフォームにデプロイ
 - [Lambda上でのclj/cljsパフォーマンス比較](https://numergent.com/2016-01/AWS-Lambda-Clojure-and-ClojureScript.html)
 - コールドインスタンス問題はCloud Watch Schedulerから定期的にリクエストを送ることで回避可能
-- コードサイズ（含む依存関係のjar)が圧縮時50MB、展開時250MBであることに注意！
-    - [AWS Lambdaの制限](http://docs.aws.amazon.com/ja_jp/lambda/latest/dg/limits.html)
+- [AWS Lambdaの制限](http://docs.aws.amazon.com/ja_jp/lambda/latest/dg/limits.html)
 
 ---
 ## uswitch/Lambada 
@@ -107,6 +106,9 @@
 @[4]
 @[12-20]
 @[6-10]
+
+- ctxは[Context](http://docs.aws.amazon.com/ja_jp/lambda/latest/dg/java-context-object.html)オブジェクト
+- エラーはCloudWatchログに出力されるが、[Rollbar](https://rollbar.com/)などに出力したほうが管理しやすい
 
 ---
 
@@ -149,7 +151,52 @@
 - [nervous-systems/serverless-cljs-plugin](https://github.com/nervous-systems/serverless-cljs-plugin)
     - プラットフォームを抽象化し、AWS Lambda, Azure Functions, Google CloudFunctionsをサポートするServerlessにcljsをデプロイするプラグイン 
     - ServerlessはLambdaとAPI Gatewayまでの登録を一気に行う 
+
+---
+
+## serverless + serverless-cljs-plugin
+
+- servlerss.yml
+
+```yml
+service: serverless-cljs
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  region: ap-northeast-1
+
+functions:
+  echo:
+    cljs: serverless-cljs.core/echo
+    events:
+      - http:
+          path: echo
+          method: post
+
+plugins:
+  - serverless-cljs-plugin
+```
+
+- servless-cljs.core
+
+```clojure
+(ns serverless-cljs.core
+  (:require [cljs-lambda.macros :refer-macros [defgateway]]))
+
+(defn count-input [s]
+  (count s))
+
+(defgateway echo [event ctx]
+  {:status  200
+   :headers {:content-type (-> event :headers :content-type)}
+   :body    (let [body (:body event)] 
+              (str "body:" body " count:" (count-input body)))})
+```
+
     - デモ |
+    - `serverless --profile default deploy`
+    - `http POST https://l15ym7sje7.execute-api.ap-northeast-1.amazonaws.com/dev/echo body=hi`
 
 ---
 
@@ -215,6 +262,44 @@
 @[1-6]
 @[8]
 @[10-17]
+
+
+---
+
+## aws-lambdaでデプロイ
+
+- 今度はlein-clj-lambdaプラグインの代わりに、lein-labmdaを使用してみる。
+- [paulbutcher/lein-lambda](https://github.com/paulbutcher/lein-lambda)
+
+```clojure
+(defproject lambda-api-demo "0.1.0-SNAPSHOT"
+...
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [compojure "1.6.0"]
+                 [metosin/ring-http-response "0.9.0"]
+                 [ring/ring-defaults "0.3.1"]
+                 [ring/ring-json "0.4.0"]
+                 [uswitch/lambada "0.1.2"]
+                 [cheshire "5.7.1"]
+                 [ring-apigw-lambda-proxy "0.3.0"]]
+  :plugins [[lein-ring "0.9.7"]
+            [lein-lambda "0.2.0"]]
+  :ring {:handler lambda-api-demo.handler/app}
+  :profiles
+  {:dev {:dependencies [[javax.servlet/servlet-api "2.5"]
+                        [ring/ring-mock "0.3.1"]]}
+   :uberjar {:aot :all}}
+  :lambda {:credentials {:profile "default"} 
+           :function {:name "lambda-api-demo"
+                      :handler "lambda-api-demo.lambda.LambdaFn"}
+           :api-gateway {:name "lambda-api-demo"}
+           :stages {"production" {:warmup {:enable true}}
+                    "staging"    {}}})
+
+```
+@[18-23]
+
+- `lein lambda deploy staging`
 
 ---
 
