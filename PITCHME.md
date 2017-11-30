@@ -195,8 +195,8 @@ plugins:
 ```
 
 - デモ |
-- `serverless --profile default deploy`
-- `http POST https://l15ym7sje7.execute-api.ap-northeast-1.amazonaws.com/dev/echo body=hi`
+    - `serverless --profile default deploy`
+    - `http POST https://l15ym7sje7.execute-api.ap-northeast-1.amazonaws.com/dev/echo body=hi`
 
 ---
 
@@ -268,7 +268,7 @@ plugins:
 
 ## aws-lambdaでデプロイ
 
-- 今度はlein-clj-lambdaプラグインの代わりに、lein-labmdaを使用してみる。
+- 今度はlein-clj-lambdaプラグインの代わりに、lein-lambdaを使用してみる。
 - [paulbutcher/lein-lambda](https://github.com/paulbutcher/lein-lambda)
 
 ```clojure
@@ -299,9 +299,9 @@ plugins:
 ```
 @[18-23]
 
-- `lein lambda deploy staging`
-- `http https://jmihnbxsf6.execute-api.ap-northeast-1.amazonaws.com/staging/hello name==Shibuya`
-- `http https://jmihnbxsf6.execute-api.ap-northeast-1.amazonaws.com/staging/error`
+    - `lein lambda deploy staging`
+    - `http https://jmihnbxsf6.execute-api.ap-northeast-1.amazonaws.com/staging/hello name==Shibuya`
+    - `http https://jmihnbxsf6.execute-api.ap-northeast-1.amazonaws.com/staging/error`
 
 ---
 
