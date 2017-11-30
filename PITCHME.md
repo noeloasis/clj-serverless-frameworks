@@ -56,7 +56,6 @@
 
 ## Lambdaのコスト
 - 95ファイルを生成
-![output-xlsx](doc/img/output-xlsx.png) |
 - 先月の明細 |
 ![aws-bill](doc/img/aws-bill.png) |
 - ひと月あたり、100万リクエスト、メモリ1GBで約111コンピューティング時間まで無料！（12ヶ月の無料利用枠期間終了後も！） |
