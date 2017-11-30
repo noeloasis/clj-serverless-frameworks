@@ -1,4 +1,4 @@
-(ns lambda-api-demo.handler
+(ns portkey-demo.handler
   (:require [compojure.core :refer :all]
             [compojure.route :as route]
             [ring.middleware.defaults :refer [wrap-defaults api-defaults]]

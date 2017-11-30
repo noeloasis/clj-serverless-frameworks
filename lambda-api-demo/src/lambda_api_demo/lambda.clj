@@ -7,7 +7,8 @@
 
 (def lambda-handler (wrap-apigw-lambda-proxy app {:scheduled-event-route "/warmup"}))
 
-(deflambdafn lambda-api-demo.lambda.LambdaFn [in out ctx]
+(deflambdafn lambda-api-demo.lambda.LambdaFn 
+  [in out ctx]
   (with-open [writer (io/writer out)]
     (-> in
         (io/reader :encoding "UTF-8")

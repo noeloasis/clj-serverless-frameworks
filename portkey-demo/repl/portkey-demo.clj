@@ -2,19 +2,16 @@
 
 ;; @@
 (ns portkey-demo
-  (:require [profile :refer :all]))
+  (:require [portkey.core :as pk]))
+;; @@
+
+;; @@
+(defn hello [name] (format "Hi, %s!" name))
 ;; @@
 ;; =>
-;;; {"type":"html","content":"<span class='clj-nil'>nil</span>","value":"nil"}
+;;; {"type":"html","content":"<span class='clj-var'>#&#x27;portkey-demo/hello</span>","value":"#'portkey-demo/hello"}
 ;; <=
 
 ;; @@
-(自己紹介 :ja)
-;; @@
-;; =>
-;;; {"type":"html","content":"<span class='clj-string'>&quot;株式会社シグニファイア代表 中村研二&quot;</span>","value":"\"株式会社シグニファイア代表 中村研二\""}
-;; <=
-
-;; @@
-
+(pk/mount! hello "/hello?name={name}")
 ;; @@

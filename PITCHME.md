@@ -42,6 +42,18 @@
     - CloudWatch
     - CodeCommit, Alexa, Lex, などなど
 - AWS Lambdaコンソール |
+
+--- 
+
+## Lambdaの適用例
+
+- 月次処理でCSVデータからExcelファイルを生成
+- [incanter](https://github.com/incanter/incanter)でデータ処理
+- [mjul/docjure](https://github.com/mjul/docjure)でExcelファイルを生成
+- ひと月あたり、100万リクエスト、メモリ1GBで約111コンピューティング時間まで無料！（12ヶ月の無料利用枠期間終了後も！）
+- 今月は95ファイルを生成
+- ファイル生成にかかる費用は無料
+- 過去２年分のファイルをS3に保管するコストは約9円!
     
 ---
 
@@ -64,10 +76,78 @@
     - [AWS Lambdaの制限](http://docs.aws.amazon.com/ja_jp/lambda/latest/dg/limits.html)
 
 ---
-## ClojureをLambda対応させるための基盤
+## uswitch/Lambada 
 
 - [uswitch/lambada](https://github.com/uswitch/lambada)
-    - AWS Lambdaエントリポイントをマクロとして提供 
+- com.amazonaws.services.lambda.runtime.RequestHandlerの実装を生成するマクロ
+
+```clojure
+(ns cigar-tax-report-aggregator.core
+  (:require [clojure.data.json :as json]
+            [clojure.java.io :as io]
+            [uswitch.lambada.core :refer [deflambdafn]]))
+
+(defn handle-event
+  [event]
+  (log/debug "Got the following event: " (pr-str event))
+  ;; parse the event and dispatch based on the event
+  {:status "ok"})
+
+(deflambdafn cigar-tax-report-aggregator.core.LambdaFn
+  [in out ctx]
+  (try (let [event (json/read (io/reader in))
+             res (handle-event event)]
+         (with-open [w (io/writer out)]
+           (json/write res w)))
+       (catch Throwable e
+         ;; send error to SNS topic
+         (throw e))))
+```
+
+@4
+@[10-17]
+@[12-20]
+@[6-10]
+
+---
+
+## Lambdaへのデプロイメント
+
+- [mhjort/clj-lambda-utils](https://github.com/mhjort/clj-lambda-utils)
+
+```clojure
+(defproject cigar-tax-report-generator "0.1.0-SNAPSHOT"
+...
+  :lambda {"dev" [{:handler "cigar-tax-report-aggregator.core.LambdaFn"
+                   :memory-size 1024
+                   :timeout 240
+                   :function-name "aggregate-sales"
+                   :region "ap-northeast-1"
+                   :s3 {:bucket "dev.lambda-jars"
+                        :object-key "cigar-tax-report-aggregator.jar"}}]
+           "release" [{:handler "cigar-tax-report-aggregator.core.LambdaFn"
+                   :memory-size 1024
+                   :timeout 240
+                   :function-name "aggregate-sales"
+                   :region "ap-northeast-1"
+                   :s3 {:bucket "lambda-jars"
+                        :object-key "cigar-tax-report-aggregator.jar"}}]}
+...
+                :plugins [[com.jakemccrary/lein-test-refresh "0.15.0"]
+                          [lein-clj-lambda "0.4.0"]]}}
+```
+
+@[3-9]
+@19
+
+---
+
+## Clojure
+
+---
+## １エンドポイント毎に１関数を割り当てるのは面倒...
+
+- 
 - [jpb/ring-aws-lambda-adapter](https://github.com/jpb/ring-aws-lambda-adapter)
     - AWS Lambdaエントリポイントとringを連携させる 
 - [mhjort/ring-apigw-lambda-proxy](https://github.com/mhjort/ring-apigw-lambda-proxy)
