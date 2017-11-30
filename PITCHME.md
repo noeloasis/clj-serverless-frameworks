@@ -104,8 +104,7 @@
          (throw e))))
 ```
 
-@4
-@[10-17]
+@[4]
 @[12-20]
 @[6-10]
 
@@ -114,6 +113,7 @@
 ## Lambdaへのデプロイメント
 
 - [mhjort/clj-lambda-utils](https://github.com/mhjort/clj-lambda-utils)
+    - JarをS3にアップロードし、Lambdaにデプロイするソリューション。API Gatewayへのデプロイも可能。
 
 ```clojure
 (defproject cigar-tax-report-generator "0.1.0-SNAPSHOT"
@@ -138,58 +138,109 @@
 ```
 
 @[3-9]
-@19
-
----
-
-## Clojure
-
----
-## １エンドポイント毎に１関数を割り当てるのは面倒...
-
-- 
-- [jpb/ring-aws-lambda-adapter](https://github.com/jpb/ring-aws-lambda-adapter)
-    - AWS Lambdaエントリポイントとringを連携させる 
-- [mhjort/ring-apigw-lambda-proxy](https://github.com/mhjort/ring-apigw-lambda-proxy)
-    - Lambadaとringを連携させるring middleware
-
----
-
-## ClojureをAPI Gateway/Lambdaにデプロイするソリューション
-
-- [clj-lambda-utils](https://github.com/mhjort/clj-lambda-utils)
-    - JarをS3にアップロードし、Lambdaにデプロイするソリューション。API Gatewayへのデプロイも可能。
-- [apex/apex](https://github.com/apex/apex) 
-    - Servlessとは対象的に、AWS Lambdaに特化して管理するシステム。
-    - node.jsから子プロセスを起動することで、 Golangなど、標準ではサポートされない言語も利用できる。
-    - Clojureのデプロイをサポート。(のはずだが、サンプルが動かない...) 
-    - apexはAPI Gatewayへのデプロイを直接サポートしてないので、[apex-api-gateway](https://www.npmjs.com/package/apex-api-gateway)などを利用。
+@[10-16]
+@[19]
 
 ---
 
 ## cljsからAPI Gateway+Labmdaへデプロイ
-- [nervous-systems/cljs-lambda](https://github.com/nervous-systems/cljs-lambda) |
-    - cljsをAWS Lambdaにデプロイするソリューション。API Gatewayへのデプロイはなし |
+- [nervous-systems/cljs-lambda](https://github.com/nervous-systems/cljs-lambda) 
+    - cljsをAWS Lambdaにデプロイするソリューション。API Gatewayへのデプロイはなし 
 - [nervous-systems/serverless-cljs-plugin](https://github.com/nervous-systems/serverless-cljs-plugin)
-    - プラットフォームを抽象化し、AWS Lambda, Azure Functions, Google CloudFunctionsをサポートするServerlessにcljsをデプロイするプラグイン |
-    - ServerlessはLambdaとAPI Gatewayまでの登録を一気に行う |
+    - プラットフォームを抽象化し、AWS Lambda, Azure Functions, Google CloudFunctionsをサポートするServerlessにcljsをデプロイするプラグイン 
+    - ServerlessはLambdaとAPI Gatewayまでの登録を一気に行う 
     - デモ |
 
 ---
 
-## ClojureからAPI Gateway+Labmdaへデプロイ
+## １エンドポイント毎に１関数を割り当てるのは面倒...
 
-- [portkey-cloud/portkey](https://github.com/portkey-cloud/portkey)
-     - デモ
+- [mhjort/ring-apigw-lambda-proxy](https://github.com/mhjort/ring-apigw-lambda-proxy)
+    - Lambadaとringを連携させるring middleware
+- まずは普通通りRing handlerを定義
+
+```clojure
+(ns lambda-api-demo.handler
+  (:require [compojure.core :refer :all]
+            [compojure.route :as route]
+            [ring.middleware.defaults :refer [wrap-defaults api-defaults]]
+            [ring.util.http-response :refer :all]
+            [ring.middleware.json :refer [wrap-json-response]]))
+
+(defroutes app-routes
+  (GET "/hello" [name]
+    (ok {:message (format "Hello World, %s" name)}))
+
+  (GET "/error" []
+    (bad-request {:message "Test error"}))
+
+  (route/not-found
+   (not-found {:message "Not Found"})))
+
+(def app
+  (-> app-routes
+      (wrap-json-response)
+      (wrap-defaults api-defaults)))
+
+```
+
+@[1-6]
+@[8-16]
+@[18-21]
 
 ---
 
-## Portkeyのヤバさ
+- 次に、appをLambdaにマウント
 
+```clojure
+(ns lambda-api-demo.lambda
+  (:require [uswitch.lambada.core :refer [deflambdafn]]
+            [clojure.java.io :as io]
+            [ring.middleware.apigw :refer [wrap-apigw-lambda-proxy]]
+            [cheshire.core :as cheshire]
+            [lambda-api-demo.handler :refer [app]]))
+
+(def lambda-handler (wrap-apigw-lambda-proxy app {:scheduled-event-route "/warmup"}))
+
+(deflambdafn lambda-api-demo.lambda.LambdaFn 
+  [in out ctx]
+  (with-open [writer (io/writer out)]
+    (-> in
+        (io/reader :encoding "UTF-8")
+        (cheshire/parse-stream true)
+        (lambda-handler)
+        (cheshire/generate-stream writer))))
+```
+
+@[1-6]
+@[8]
+@[10-17]
+
+---
+
+## 多機能にするとJarが肥大する...
+
+- Lambdaの制限として、プログラムJarの上限は圧縮時50MB, 展開時250MB
+    - Dependenciesにexclusionを入れて依存関係を静的に減らす。 |
+    - 手作業で大変。Jar単位での制御では限界がある。 |
+
+---
+
+## portkey-cloud/portkey
+
+- [portkey](https://github.com/portkey-cloud/portkey)は[O'reillyのClojure Programming](http://shop.oreilly.com/product/0636920013754.do)の共著者、Christophe Grandらによるプロジェクト。
 - REPLから直接デプロイできる。
-    - プラグインも、serverlessやapexのようなデプロイ用のフレームワークも必要なし
+    - プラグインも、serverlessのようなデプロイ用のフレームワークも必要なし
     - データ => プログラム => デプロイ の流れがプログラムで実現可能 (Infrastructure as Code)
-- ツリー・シェイキングによるデプロイコードのスリム化
+- 実行時にコードを動的に解析し、必要な依存関係のみを抽出し、動的にバイトコードを生成している。
     - 詳細は[スライド](https://github.com/portkey-cloud/portkey-clojutre-2017/blob/master/Portkey%20ClojuTRE%202017.pdf)と[動画](https://www.youtube.com/watch?v=qJXqQATJNTk&list=PLetHPRQvX4a9iZk-buMQfdxZm72UnP3C9&index=6)で。
+- デモ |
+- まだアルファクオリティ。Clojarにリリースされていない。 | 
+- 既存アプリのRingハンドラを渡したら解析に8分以上 |
 
 ---
+
+### ご清聴ありがとうございました
+
+- 12/12 [clj-nakano #2](https://clj-nakano.connpass.com/event/71884/)でRich Hickeyの2012年のキーノート、"Value of Values"の日本語による上映会を行います!
+
