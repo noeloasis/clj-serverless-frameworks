@@ -52,8 +52,11 @@
 - [mjul/docjure](https://github.com/mjul/docjure)でExcelファイルを生成
 - ひと月あたり、100万リクエスト、メモリ1GBで約111コンピューティング時間まで無料！（12ヶ月の無料利用枠期間終了後も！）
 - 今月は95ファイルを生成
+![output-xlsx](doc/img/output-xlsx.png)
+![sample](doc/img/2017-10-13-cigar-tax-item-details.png)
 - ファイル生成にかかる費用は無料
 - 過去２年分のファイルをS3に保管するコストは約9円!
+![aws-bill](doc/img/aws-bill.png)
     
 ---
 
@@ -316,6 +319,7 @@ plugins:
 ## portkey-cloud/portkey
 
 - [portkey](https://github.com/portkey-cloud/portkey)は[O'reillyのClojure Programming](http://shop.oreilly.com/product/0636920013754.do)の共著者、Christophe Grandらによるプロジェクト。
+- Apache Sparkクラスタ上でライブコーディングする[powderkeg](https://github.com/HCADatalab/powderkeg)から移植
 - REPLから直接デプロイできる。
     - プラグインも、serverlessのようなデプロイ用のフレームワークも必要なし
     - データ => プログラム => デプロイ の流れがプログラムで実現可能 (Infrastructure as Code)
